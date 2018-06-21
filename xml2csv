@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+
+import sys
+import csv
+from xml.sax import saxutils, handler
+from xml.sax import parse
+
+class ExcelHandler(handler.ContentHandler):
+    def __init__(self):
+        self.chars = []
+        self.cells = []
+        self.rows = []
+        self.tables = []
+
+    def characters(self, content):
+        self.chars.append(content)
+
+    def startElement(self, name, atts):
+        if name == "Cell":
+            self.chars = []
+        elif name == "Row":
+            self.cells = []
+        elif name == "Table":
+            self.rows = []
+
+    def endElement(self, name):
+        if name == "Cell":
+            self.cells.append(''.join(self.chars))
+        elif name == "Row":
+            self.rows.append(self.cells)
+        elif name == "Table":
+            self.tables.append(self.rows)
+
+if __name__ == '__main__':
+
+    if len(sys.argv) != 3:
+        print 'Usage: ./xml2csv <input_file> <output_file>'
+        sys.exit(1)
+
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+
+    excelHandler=ExcelHandler()
+    parse(input_file, excelHandler)
+
+    with open(output_file, 'wb') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerows(excelHandler.tables[0])
